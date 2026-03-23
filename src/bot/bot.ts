@@ -2,10 +2,14 @@ import { Ctx, Help, On, Start, Update } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { BotService } from './bot.service';
 import * as TelegramTypes from 'typescript-telegram-bot-api/dist/types';
+import { LlmService } from '../llm/llm.service';
 
 @Update()
 export class Bot {
-  constructor(private readonly botService: BotService) {}
+  constructor(
+    private readonly botService: BotService,
+    private readonly llmService: LlmService,
+  ) {}
 
   @Start()
   async start(@Ctx() ctx: Context) {
@@ -29,7 +33,7 @@ export class Bot {
     const buffer = await response.arrayBuffer();
 
     try {
-      const text = await this.botService.getTextFromVoice(buffer);
+      const text = await this.llmService.getTextFromVoice(buffer);
       return await ctx.reply(`I got your voice, and it says: ${text}`);
     } catch (error) {
       console.log(error);
