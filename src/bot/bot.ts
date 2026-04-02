@@ -35,6 +35,7 @@ export class Bot {
 
     try {
       const text = await this.llmService.getTextFromFile(mp3FilePath);
+      const response = await this.botService.processText(text);
       await ctx.reply(`I got your voice from file: ${text}`);
       return;
     } catch (error) {
