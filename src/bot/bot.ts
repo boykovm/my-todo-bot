@@ -3,6 +3,8 @@ import { Context } from 'telegraf';
 import { BotService } from './bot.service';
 import * as TelegramTypes from 'typescript-telegram-bot-api/dist/types';
 import { LlmService } from '../llm/llm.service';
+import ffmpeg from 'fluent-ffmpeg';
+import { writeFile, unlink } from 'fs/promises';
 
 @Update()
 export class Bot {
@@ -23,38 +25,93 @@ export class Bot {
 
   @On('voice')
   async voiceHandler(@Ctx() ctx: Context) {
-    // @ts-ignore
+    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+    // @ts-expect-error
     const voice = ctx.message.voice as TelegramTypes.Voice;
-    const fileId = voice.file_id;
-    const file = await ctx.telegram.getFile(fileId);
-    const response = await fetch(
-      `https://api.telegram.org/file/bot${ctx.telegram.token}/${file.file_path}`,
+    const { mp3FilePath, oggFilePath } = await this.convertVoiceIntoMp3(
+      ctx,
+      voice,
     );
-    const buffer = await response.arrayBuffer();
 
     try {
-      const text = await this.llmService.getTextFromVoice(buffer);
-      return await ctx.reply(`I got your voice, and it says: ${text}`);
+      const text = await this.llmService.getTextFromFile(mp3FilePath);
+      await ctx.reply(`I got your voice from file: ${text}`);
+      return;
     } catch (error) {
       console.log(error);
+    } finally {
+      await this.cleanUpFiles(oggFilePath, mp3FilePath);
     }
 
-    console.log(ctx);
-
-    await ctx.reply('voice');
+    await ctx.reply(
+      'Looks like text was not recognized, try again or use text instead of voice',
+    );
   }
 
   @On('message')
   async messageHandler(@Ctx() ctx: Context) {
-    console.log(ctx.message);
+    const { from: { id } = { id: null as number | null } } =
+      ctx.message as TelegramTypes.Message;
 
     if (ctx.text) {
-      return await ctx.reply('I got your text');
+      await ctx.reply(`I got your text from userId: ${id}`);
+      return;
     }
 
-    // await this.botService.getTextFromVoice(ctx.message.);
-    console.log(ctx);
+    await ctx.reply('there was an issue');
+    return;
+  }
 
-    await ctx.reply('Hello');
+  private async convertVoiceIntoMp3(
+    @Ctx() ctx: Context,
+    voice: TelegramTypes.Voice,
+  ) {
+    const { file_id, file_unique_id } = voice;
+
+    const oggFilePath = `temp_${file_unique_id}_${Date.now()}.ogg`;
+    const mp3FilePath = `temp_${file_unique_id}_${Date.now()}.mp3`;
+
+    const file = await ctx.telegram.getFile(file_id);
+
+    const response = await fetch(
+      `https://api.telegram.org/file/bot${ctx.telegram.token}/${file.file_path}`,
+    );
+
+    const arrayBuffer = await response.arrayBuffer();
+
+    await writeFile(oggFilePath, Buffer.from(arrayBuffer));
+
+    await this.ffmpegPromise(oggFilePath, mp3FilePath);
+
+    return {
+      oggFilePath,
+      mp3FilePath,
+    };
+  }
+
+  private async ffmpegPromise(inputPath: string, outputPath: string) {
+    return new Promise((resolve, reject) => {
+      ffmpeg(inputPath)
+        .toFormat('mp3')
+        .on('end', resolve)
+        .on('error', reject)
+        .save(outputPath);
+    });
+  }
+
+  private async cleanUpFiles(...files: string[]) {
+    const promises = files.map((file) => unlink(file));
+
+    await Promise.allSettled(promises).then((results) => {
+      results
+        .filter((result) => result.status === 'rejected')
+        .forEach((result) => {
+          console.error(
+            'Failed to delete file:',
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
+            result?.reason?.path || result.reason,
+          );
+        });
+    });
   }
 }

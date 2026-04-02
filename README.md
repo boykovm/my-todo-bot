@@ -96,3 +96,20 @@ Nest is an MIT-licensed open source project. It can grow thanks to the sponsors 
 ## License
 
 Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+
+### Installing FFmpeg
+
+#### Windows
+1. Download FFmpeg from the [official website](https://ffmpeg.org/download.html)
+2. Add FFmpeg to your system's PATH environment variable
+
+#### macOS
+```bash
+brew install ffmpeg
+```
+
+#### Linux (Ubuntu/Debian)
+```bash
+sudo apt update
+sudo apt install ffmpeg
+```
