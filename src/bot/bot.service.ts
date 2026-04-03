@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { LlmService } from '../llm/llm.service';
+import { ToDoAction } from '../todo/dto/create-todo.dto';
 
 @Injectable()
 export class BotService {
@@ -10,19 +11,25 @@ export class BotService {
     return 'lol';
   }
 
-  async processText(text: string): Promise<unknown> {
-    return await this.classifyText(text);
+  async handleText(text: string) {
+    return await this.processText(text);
   }
 
-  async classifyText(text: string): Promise<string | null> {
-    const response = await this.llmService.getTodoData(text);
+  async processText(text: string): Promise<string> {
+    const response = await this.classifyText(text);
 
-    if (!response) {
-      return null;
+    switch (response.action) {
+      case ToDoAction.update:
+        return `${response.text} + action: ${response.action}`;
+      case ToDoAction.delete:
+        return `${response.text} + action: ${response.action}`;
+      case ToDoAction.create:
+      default:
+        return `${response.text} + action: ${response.action}`;
     }
+  }
 
-    console.log(response);
-
-    return response.text;
+  async classifyText(text: string) {
+    return await this.llmService.getTodoData(text);
   }
 }
