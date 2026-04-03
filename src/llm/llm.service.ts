@@ -2,16 +2,7 @@ import { Injectable, OnModuleInit } from '@nestjs/common';
 import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import * as fs from 'node:fs';
-import { z } from 'zod';
-
-const ToDoExtraction = z.object({
-  text: z.string(),
-  notificationTime: z.string().optional().nullable(),
-  deleted: z.boolean().optional().nullable(),
-  isDone: z.boolean().optional().nullable(),
-  deadline: z.string(),
-  action: z.enum(['create', 'update', 'delete']),
-});
+import { ToDoSchemaExtractor } from '../todo/dto/create-todo.dto';
 
 @Injectable()
 export class LlmService implements OnModuleInit {
@@ -50,10 +41,14 @@ export class LlmService implements OnModuleInit {
         },
       ],
       text: {
-        format: zodTextFormat(ToDoExtraction, 'ToDoExtraction'),
+        format: zodTextFormat(ToDoSchemaExtractor, 'ToDoExtraction'),
       },
     });
 
-    return response?.output_parsed || null;
+    if (!response?.output_parsed || !response?.output_parsed.text.length) {
+      throw new Error('Failed to parse response');
+    }
+
+    return response.output_parsed;
   }
 }

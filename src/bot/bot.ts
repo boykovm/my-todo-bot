@@ -35,7 +35,9 @@ export class Bot {
 
     try {
       const text = await this.llmService.getTextFromFile(mp3FilePath);
-      const response = await this.botService.processText(text);
+
+      const response = await this.botService.handleText(text);
+
       await ctx.reply(`I got your voice from file: ${text}`);
       return;
     } catch (error) {
@@ -55,6 +57,8 @@ export class Bot {
       ctx.message as TelegramTypes.Message;
 
     if (ctx.text) {
+      const response = await this.botService.handleText(ctx.text);
+
       await ctx.reply(`I got your text from userId: ${id}`);
       return;
     }
