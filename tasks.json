@@ -1,0 +1,58 @@
+{
+  "tasks": [
+    {
+      "id": "task-001",
+      "title": "Create Docker Compose file",
+      "description": "Create a docker-compose.yml file in the project root that allows running the app in Docker. It must contain two services: (1) 'app' — the NestJS bot service, built from a Dockerfile (also create the Dockerfile), exposing the necessary port, with environment variables for DB connection and OpenAI API key; (2) 'db' — a PostgreSQL service using the official postgres image, with a named volume for data persistence, and environment variables for POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB. The app service must depend_on the db service. Include a .dockerignore file excluding node_modules and dist.",
+      "status": "pending",
+      "priority": "high",
+      "completedAt": null,
+      "result": null
+    },
+    {
+      "id": "task-002",
+      "title": "Add Prisma ORM and run migrations on start",
+      "description": "Install and configure Prisma ORM in the NestJS project. Steps: (1) Install @prisma/client and prisma as devDependency; (2) Run `npx prisma init` to generate the prisma/ directory with schema.prisma; (3) Define a Todo model in schema.prisma matching the existing Todo entity fields: id (autoincrement), text, notificationTime, deleted, isDone, deadline, ownerId (all fields from src/todo/entities/todo.entity.ts); (4) Create a PrismaService (src/prisma/prisma.service.ts) that extends PrismaClient and implements OnModuleInit/OnModuleDestroy; (5) Create a PrismaModule and make it global; (6) Update the Dockerfile CMD so that it runs `npx prisma migrate deploy` before starting the app (e.g., use a shell entrypoint script or change CMD to run migrations then start). Update DATABASE_URL in .env.example.",
+      "status": "pending",
+      "priority": "high",
+      "completedAt": null,
+      "result": null
+    },
+    {
+      "id": "task-003",
+      "title": "Create unit and e2e tests for database integration",
+      "description": "Write tests for the database integration using Prisma. (1) Unit tests: create src/todo/todo.service.spec.ts that mocks PrismaService using Jest mocks, and tests all methods of TodoService (create, findAll, findOne, update, remove) — assert correct Prisma calls and return values; (2) E2E tests: create or update test/todo.e2e-spec.ts that spins up a real NestJS app connected to a test PostgreSQL database (use a separate TEST_DATABASE_URL env var), runs migrations before tests, seeds data as needed, calls the service methods, and verifies data is persisted and retrieved correctly. Clean up the database after each test. Use @nestjs/testing and jest.",
+      "status": "pending",
+      "priority": "medium",
+      "completedAt": null,
+      "result": null
+    },
+    {
+      "id": "task-004",
+      "title": "Update TodoService to use Prisma ORM",
+      "description": "Refactor src/todo/todo.service.ts to replace the stub implementations with real Prisma database calls. Inject PrismaService into TodoService. Implement all methods: (1) create(createTodoDto) — call prisma.todo.create with the DTO data; (2) findAll() — call prisma.todo.findMany where deleted is false; (3) findOne(id) — call prisma.todo.findUnique by id; (4) update(id, updateTodoDto) — call prisma.todo.update by id with the DTO data; (5) remove(id) — soft delete by calling prisma.todo.update to set deleted=true instead of actually deleting. Update the Todo entity and DTOs if needed to include the Prisma-generated id field. Ensure proper error handling (throw NotFoundException if record not found).",
+      "status": "pending",
+      "priority": "high",
+      "completedAt": null,
+      "result": null
+    },
+    {
+      "id": "task-005",
+      "title": "Create cron job running at 10am every day",
+      "description": "Add a scheduled cron job to the NestJS application that runs every day at 10:00 AM. Steps: (1) Install @nestjs/schedule and @types/cron; (2) Import ScheduleModule.forRoot() in AppModule; (3) Create a new module and service: src/cron/cron.module.ts and src/cron/cron.service.ts; (4) In CronService, add a method decorated with @Cron('0 10 * * *') (or CronExpression.EVERY_DAY_AT_10AM); (5) For now the cron handler should just log 'Running daily 10am cron job' as a placeholder; (6) Register CronModule in AppModule. Make sure the service is properly injectable.",
+      "status": "pending",
+      "priority": "medium",
+      "completedAt": null,
+      "result": null
+    },
+    {
+      "id": "task-006",
+      "title": "Update cron job to send daily task notifications to users",
+      "description": "Extend the cron job created in task-005 to pull todos from the database and send Telegram notifications to users. Steps: (1) In the cron handler, inject PrismaService and the Telegram bot service (BotService or Telegraf instance); (2) Query all todos where: isDone=false, deleted=false, and deadline falls within the current day (from 00:00:00 to 23:59:59 of today); (3) Group the found todos by ownerId (which is the Telegram chat ID); (4) For each user, send a Telegram message listing their due tasks for the day — format the message nicely with task text and deadline time; (5) Handle errors gracefully (e.g. if sending to a user fails, log the error and continue with other users). Import PrismaModule and BotModule into CronModule.",
+      "status": "pending",
+      "priority": "medium",
+      "completedAt": null,
+      "result": null
+    }
+  ]
+}
