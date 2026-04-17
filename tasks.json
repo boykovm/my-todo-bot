@@ -4,10 +4,11 @@
       "id": "task-001",
       "title": "Create Docker Compose file",
       "description": "Create a docker-compose.yml file in the project root that allows running the app in Docker. It must contain two services: (1) 'app' — the NestJS bot service, built from a Dockerfile (also create the Dockerfile), exposing the necessary port, with environment variables for DB connection and OpenAI API key; (2) 'db' — a PostgreSQL service using the official postgres image, with a named volume for data persistence, and environment variables for POSTGRES_USER, POSTGRES_PASSWORD, and POSTGRES_DB. The app service must depend_on the db service. Include a .dockerignore file excluding node_modules and dist.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
-      "completedAt": null,
-      "result": null
+      "createdAt": "2025-07-14T00:00:00Z",
+      "completedAt": "2025-07-14T00:01:00Z",
+      "result": "Created Dockerfile (multi-stage build), docker-compose.yml (app + db services with healthcheck), .dockerignore, and updated .env.example with PostgreSQL vars."
     },
     {
       "id": "task-002",
