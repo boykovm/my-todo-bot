@@ -44,10 +44,11 @@
       "id": "task-005",
       "title": "Create cron job running at 10am every day",
       "description": "Add a scheduled cron job to the NestJS application that runs every day at 10:00 AM. Steps: (1) Install @nestjs/schedule and @types/cron; (2) Import ScheduleModule.forRoot() in AppModule; (3) Create a new module and service: src/cron/cron.module.ts and src/cron/cron.service.ts; (4) In CronService, add a method decorated with @Cron('0 10 * * *') (or CronExpression.EVERY_DAY_AT_10AM); (5) For now the cron handler should just log 'Running daily 10am cron job' as a placeholder; (6) Register CronModule in AppModule. Make sure the service is properly injectable.",
-      "status": "pending",
+      "status": "done",
       "priority": "medium",
-      "completedAt": null,
-      "result": null
+      "createdAt": "2025-07-14T00:00:00Z",
+      "completedAt": "2025-07-14T00:05:00Z",
+      "result": "Installed @nestjs/schedule. Created CronService with @Cron(CronExpression.EVERY_DAY_AT_10AM) handler that logs 'Running daily 10am cron job'. Created CronModule. Registered ScheduleModule.forRoot() and CronModule in AppModule. 3 unit tests added, all 26 tests pass, build clean."
     },
     {
       "id": "task-006",
