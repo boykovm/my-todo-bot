@@ -54,10 +54,11 @@
       "id": "task-006",
       "title": "Update cron job to send daily task notifications to users",
       "description": "Extend the cron job created in task-005 to pull todos from the database and send Telegram notifications to users. Steps: (1) In the cron handler, inject PrismaService and the Telegram bot service (BotService or Telegraf instance); (2) Query all todos where: isDone=false, deleted=false, and deadline falls within the current day (from 00:00:00 to 23:59:59 of today); (3) Group the found todos by ownerId (which is the Telegram chat ID); (4) For each user, send a Telegram message listing their due tasks for the day — format the message nicely with task text and deadline time; (5) Handle errors gracefully (e.g. if sending to a user fails, log the error and continue with other users). Import PrismaModule and BotModule into CronModule.",
-      "status": "pending",
+      "status": "done",
       "priority": "medium",
-      "completedAt": null,
-      "result": null
+      "createdAt": "2025-07-14T00:00:00Z",
+      "completedAt": "2025-07-14T00:06:00Z",
+      "result": "Injected Telegraf bot (@InjectBot) and TodoService into CronService. Implemented handleDailyNotifications: fetches todos due today, groups by ownerId, sends HTML-formatted Telegram message per user, handles DB and per-user send errors gracefully. Updated CronModule to import TodoModule. 9 unit tests added (32 total pass), 17 e2e tests pass, build clean."
     }
   ]
 }
