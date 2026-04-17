@@ -24,19 +24,21 @@
       "id": "task-003",
       "title": "Create unit and e2e tests for database integration",
       "description": "Write tests for the database integration using Prisma. (1) Unit tests: create src/todo/todo.service.spec.ts that mocks PrismaService using Jest mocks, and tests all methods of TodoService (create, findAll, findOne, update, remove) — assert correct Prisma calls and return values; (2) E2E tests: create or update test/todo.e2e-spec.ts that spins up a real NestJS app connected to a test PostgreSQL database (use a separate TEST_DATABASE_URL env var), runs migrations before tests, seeds data as needed, calls the service methods, and verifies data is persisted and retrieved correctly. Clean up the database after each test. Use @nestjs/testing and jest.",
-      "status": "pending",
+      "status": "done",
       "priority": "medium",
-      "completedAt": null,
-      "result": null
+      "createdAt": "2025-07-14T00:00:00Z",
+      "completedAt": "2025-07-14T00:03:00Z",
+      "result": "Implemented TodoService with full Prisma ORM (create, findAll, findOne, update, remove, findByOwner, findDueToday). Wrote 14 unit tests (mocked PrismaService, all pass). Wrote 17 e2e integration tests against real Docker PostgreSQL (all pass). Fixed pre-existing bot.service.spec.ts. Configured Jest ESM mode (--experimental-vm-modules) for Prisma 7 generated client compatibility."
     },
     {
       "id": "task-004",
       "title": "Update TodoService to use Prisma ORM",
       "description": "Refactor src/todo/todo.service.ts to replace the stub implementations with real Prisma database calls. Inject PrismaService into TodoService. Implement all methods: (1) create(createTodoDto) — call prisma.todo.create with the DTO data; (2) findAll() — call prisma.todo.findMany where deleted is false; (3) findOne(id) — call prisma.todo.findUnique by id; (4) update(id, updateTodoDto) — call prisma.todo.update by id with the DTO data; (5) remove(id) — soft delete by calling prisma.todo.update to set deleted=true instead of actually deleting. Update the Todo entity and DTOs if needed to include the Prisma-generated id field. Ensure proper error handling (throw NotFoundException if record not found).",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
-      "completedAt": null,
-      "result": null
+      "createdAt": "2025-07-14T00:00:00Z",
+      "completedAt": "2025-07-14T00:03:00Z",
+      "result": "Completed as part of task-003. TodoService fully implemented with Prisma ORM, NotFoundException handling, soft deletes, and additional helpers findByOwner and findDueToday. Verified by 14 unit tests and 17 e2e tests."
     },
     {
       "id": "task-005",
