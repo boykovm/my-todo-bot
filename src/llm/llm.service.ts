@@ -29,7 +29,7 @@ export class LlmService implements OnModuleInit {
     const now = new Date().toISOString();
 
     const response = await this.client.responses.parse({
-      model: 'gpt-4o-mini',
+      model: 'gpt-5.4-nano',
       input: [
         {
           role: 'system',
