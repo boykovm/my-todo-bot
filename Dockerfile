@@ -1,10 +1,15 @@
-FROM node:24.11-alpine AS builder
+FROM node:20-alpine AS builder
 
 WORKDIR /app
 
 COPY package*.json ./
 
 RUN npm ci
+
+COPY prisma ./prisma
+COPY prisma.config.ts ./
+
+RUN npx prisma generate
 
 COPY . .
 
@@ -19,7 +24,13 @@ COPY package*.json ./
 RUN npm ci --only=production
 
 COPY --from=builder /app/dist ./dist
+COPY --from=builder /app/generated ./generated
+COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/prisma.config.ts ./prisma.config.ts
+
+COPY entrypoint.sh ./entrypoint.sh
+RUN chmod +x ./entrypoint.sh
 
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+ENTRYPOINT ["./entrypoint.sh"]

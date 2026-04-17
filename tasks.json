@@ -14,10 +14,11 @@
       "id": "task-002",
       "title": "Add Prisma ORM and run migrations on start",
       "description": "Install and configure Prisma ORM in the NestJS project. Steps: (1) Install @prisma/client and prisma as devDependency; (2) Run `npx prisma init` to generate the prisma/ directory with schema.prisma; (3) Define a Todo model in schema.prisma matching the existing Todo entity fields: id (autoincrement), text, notificationTime, deleted, isDone, deadline, ownerId (all fields from src/todo/entities/todo.entity.ts); (4) Create a PrismaService (src/prisma/prisma.service.ts) that extends PrismaClient and implements OnModuleInit/OnModuleDestroy; (5) Create a PrismaModule and make it global; (6) Update the Dockerfile CMD so that it runs `npx prisma migrate deploy` before starting the app (e.g., use a shell entrypoint script or change CMD to run migrations then start). Update DATABASE_URL in .env.example.",
-      "status": "pending",
+      "status": "done",
       "priority": "high",
-      "completedAt": null,
-      "result": null
+      "createdAt": "2025-07-14T00:00:00Z",
+      "completedAt": "2025-07-14T00:02:00Z",
+      "result": "Installed Prisma 7 + @prisma/adapter-pg. Created prisma/schema.prisma with Todo model, initial migration SQL, prisma.config.ts, PrismaService (with PrismaPg adapter), global PrismaModule, entrypoint.sh for running migrations on Docker start, and updated Dockerfile. Build passes cleanly."
     },
     {
       "id": "task-003",
