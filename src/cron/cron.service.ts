@@ -3,6 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectBot } from 'nestjs-telegraf';
 import { Telegraf } from 'telegraf';
 import { TodoService } from '../todo/todo.service';
+import type { Todo } from '../todo/entities/todo.entity';
 
 @Injectable()
 export class CronService {
@@ -17,7 +18,7 @@ export class CronService {
   async handleDailyNotifications(): Promise<void> {
     this.logger.log('Running daily 10am cron job');
 
-    let todos: Awaited<ReturnType<typeof this.todoService.findDueToday>>;
+    let todos: Todo[];
 
     try {
       todos = await this.todoService.findDueToday();
@@ -31,35 +32,33 @@ export class CronService {
       return;
     }
 
-    // Group todos by ownerId (Telegram chat ID)
-    const byOwner = todos.reduce<Record<string, typeof todos>>((acc, todo) => {
-      if (!todo.ownerId) return acc;
-      if (!acc[todo.ownerId]) acc[todo.ownerId] = [];
-      acc[todo.ownerId].push(todo);
+    const byOwner = todos.reduce<Record<string, Todo[] | undefined>>((acc, todo) => {
+      if (!todo.ownerId) {
+        return acc;
+      }
+      const existing = acc[todo.ownerId];
+      if (existing) {
+        existing.push(todo);
+      } else {
+        acc[todo.ownerId] = [todo];
+      }
       return acc;
     }, {});
 
-    for (const [ownerId, ownerTodos] of Object.entries(byOwner)) {
+    for (const [ownerId, ownerTodos] of Object.entries(byOwner) as [string, Todo[]][]) {
       try {
         const message = this.formatMessage(ownerTodos);
         await this.bot.telegram.sendMessage(ownerId, message, {
           parse_mode: 'HTML',
         });
-        this.logger.log(
-          `Sent ${ownerTodos.length} reminder(s) to user ${ownerId}`,
-        );
+        this.logger.log(`Sent ${String(ownerTodos.length)} reminder(s) to user ${ownerId}`);
       } catch (error) {
-        this.logger.error(
-          `Failed to send notification to user ${ownerId}`,
-          error,
-        );
+        this.logger.error(`Failed to send notification to user ${ownerId}`, error);
       }
     }
   }
 
-  private formatMessage(
-    todos: Awaited<ReturnType<typeof this.todoService.findDueToday>>,
-  ): string {
+  public formatMessage(todos: Todo[]): string {
     const lines = todos.map((todo, index) => {
       const deadline = new Date(todo.deadline);
       const time = deadline.toLocaleTimeString('en-US', {
@@ -67,7 +66,7 @@ export class CronService {
         minute: '2-digit',
         hour12: false,
       });
-      return `${index + 1}. ${todo.text}  ⏰ <b>${time}</b>`;
+      return `${String(index + 1)}. ${todo.text}  ⏰ <b>${time}</b>`;
     });
 
     return [

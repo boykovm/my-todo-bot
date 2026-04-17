@@ -3,30 +3,33 @@ import OpenAI from 'openai';
 import { zodTextFormat } from 'openai/helpers/zod';
 import * as fs from 'node:fs';
 import { ToDoSchemaExtractor } from '../todo/dto/create-todo.dto';
+import type { z } from 'zod';
+
+type TodoExtraction = z.infer<typeof ToDoSchemaExtractor>;
 
 @Injectable()
 export class LlmService implements OnModuleInit {
-  private client: OpenAI;
+  private client!: OpenAI;
 
   onModuleInit(): void {
     this.client = new OpenAI({
-      apiKey: process.env['OPENAI_API_KEY'],
+      apiKey: process.env.OPENAI_API_KEY,
     });
   }
 
-  async getTextFromFile(filePath: string) {
-    return await this.client.audio.transcriptions.create({
+  async getTextFromFile(filePath: string): Promise<string> {
+    return this.client.audio.transcriptions.create({
       file: fs.createReadStream(filePath),
       model: 'gpt-4o-transcribe',
       response_format: 'text',
     });
   }
 
-  async getTodoData(text: string) {
+  async getTodoData(text: string): Promise<TodoExtraction> {
     const now = new Date().toISOString();
 
     const response = await this.client.responses.parse({
-      model: 'gpt-5.4-nano',
+      model: 'gpt-4o-mini',
       input: [
         {
           role: 'system',
@@ -45,7 +48,7 @@ export class LlmService implements OnModuleInit {
       },
     });
 
-    if (!response?.output_parsed || !response?.output_parsed.text.length) {
+    if (!response.output_parsed?.text.length) {
       throw new Error('Failed to parse response');
     }
 

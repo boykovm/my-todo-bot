@@ -1,45 +1,46 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateTodoDto } from './dto/create-todo.dto';
-import { UpdateTodoDto } from './dto/update-todo.dto';
+import type { CreateTodoDto } from './dto/create-todo.dto';
+import type { UpdateTodoDto } from './dto/update-todo.dto';
+import type { Todo } from './entities/todo.entity';
 
 @Injectable()
 export class TodoService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createTodoDto: CreateTodoDto) {
+  async create(createTodoDto: CreateTodoDto): Promise<Todo> {
     return this.prisma.todo.create({
       data: {
         text: createTodoDto.text,
-        notificationTime: createTodoDto.notificationTime ?? '',
-        deleted: createTodoDto.deleted ?? false,
-        isDone: createTodoDto.isDone ?? false,
+        notificationTime: createTodoDto.notificationTime,
+        deleted: createTodoDto.deleted,
+        isDone: createTodoDto.isDone,
         deadline: createTodoDto.deadline,
-        ownerId: createTodoDto.ownerId ?? '',
+        ownerId: createTodoDto.ownerId,
       },
     });
   }
 
-  async findAll() {
+  async findAll(): Promise<Todo[]> {
     return this.prisma.todo.findMany({
       where: { deleted: false },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findOne(id: number) {
+  async findOne(id: number): Promise<Todo> {
     const todo = await this.prisma.todo.findUnique({
       where: { id },
     });
 
     if (!todo) {
-      throw new NotFoundException(`Todo #${id} not found`);
+      throw new NotFoundException(`Todo #${String(id)} not found`);
     }
 
     return todo;
   }
 
-  async update(id: number, updateTodoDto: UpdateTodoDto) {
+  async update(id: number, updateTodoDto: UpdateTodoDto): Promise<Todo> {
     await this.findOne(id);
 
     return this.prisma.todo.update({
@@ -62,7 +63,7 @@ export class TodoService {
     });
   }
 
-  async remove(id: number) {
+  async remove(id: number): Promise<Todo> {
     await this.findOne(id);
 
     return this.prisma.todo.update({
@@ -71,14 +72,14 @@ export class TodoService {
     });
   }
 
-  async findByOwner(ownerId: string) {
+  async findByOwner(ownerId: string): Promise<Todo[]> {
     return this.prisma.todo.findMany({
       where: { ownerId, deleted: false },
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findDueToday() {
+  async findDueToday(): Promise<Todo[]> {
     const startOfDay = new Date();
     startOfDay.setHours(0, 0, 0, 0);
 

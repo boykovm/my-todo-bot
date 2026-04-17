@@ -1,12 +1,13 @@
 import 'reflect-metadata';
-import { Test, TestingModule } from '@nestjs/testing';
-import { INestApplication, NotFoundException } from '@nestjs/common';
+import { type TestingModule, Test } from '@nestjs/testing';
+import { type INestApplication, NotFoundException } from '@nestjs/common';
 import { TodoService } from '../src/todo/todo.service';
 import { PrismaService } from '../src/prisma/prisma.service';
 import { TodoModule } from '../src/todo/todo.module';
 import { PrismaModule } from '../src/prisma/prisma.module';
 import { ConfigModule } from '@nestjs/config';
 import { execSync } from 'child_process';
+import type { UpdateTodoDto } from '../src/todo/dto/update-todo.dto';
 
 describe('TodoService (e2e)', () => {
   let app: INestApplication;
@@ -20,11 +21,7 @@ describe('TodoService (e2e)', () => {
     });
 
     const moduleFixture: TestingModule = await Test.createTestingModule({
-      imports: [
-        ConfigModule.forRoot({ isGlobal: true }),
-        PrismaModule,
-        TodoModule,
-      ],
+      imports: [ConfigModule.forRoot({ isGlobal: true }), PrismaModule, TodoModule],
     }).compile();
 
     app = moduleFixture.createNestApplication();
@@ -80,14 +77,14 @@ describe('TodoService (e2e)', () => {
 
       const inDb = await prisma.todo.findUnique({ where: { id: result.id } });
       expect(inDb).not.toBeNull();
-      expect(inDb!.text).toBe(dto.text);
+      if (!inDb) throw new Error('Expected todo to exist in DB');
+      expect(inDb.text).toBe(dto.text);
     });
 
     it('should use default values for optional fields', async () => {
-      const result = await todoService.create({
-        text: 'Minimal todo',
-        deadline: '2025-12-31T00:00:00.000Z',
-      } as any);
+      const result = await todoService.create(
+        seedTodo({ notificationTime: '', ownerId: '', isDone: false, deleted: false }),
+      );
 
       expect(result.notificationTime).toBe('');
       expect(result.ownerId).toBe('');
@@ -110,9 +107,7 @@ describe('TodoService (e2e)', () => {
     });
 
     it('should exclude soft-deleted todos', async () => {
-      const todo = await todoService.create(
-        seedTodo({ text: 'To be deleted' }),
-      );
+      const todo = await todoService.create(seedTodo({ text: 'To be deleted' }));
       await todoService.remove(todo.id);
 
       const result = await todoService.findAll();
@@ -122,7 +117,7 @@ describe('TodoService (e2e)', () => {
 
     it('should return an empty array when there are no todos', async () => {
       const result = await todoService.findAll();
-      expect(result).toEqual([]);
+      expect(result).toStrictEqual([]);
     });
   });
 
@@ -139,12 +134,8 @@ describe('TodoService (e2e)', () => {
     });
 
     it('should throw NotFoundException for a non-existent id', async () => {
-      await expect(todoService.findOne(999999)).rejects.toThrow(
-        NotFoundException,
-      );
-      await expect(todoService.findOne(999999)).rejects.toThrow(
-        'Todo #999999 not found',
-      );
+      await expect(todoService.findOne(999999)).rejects.toThrow(NotFoundException);
+      await expect(todoService.findOne(999999)).rejects.toThrow('Todo #999999 not found');
     });
   });
 
@@ -153,36 +144,36 @@ describe('TodoService (e2e)', () => {
   describe('update', () => {
     it('should update the specified fields and persist to the database', async () => {
       const created = await todoService.create(seedTodo());
+      const dto: UpdateTodoDto = { text: 'Updated text', isDone: true };
 
-      const result = await todoService.update(created.id, {
-        text: 'Updated text',
-        isDone: true,
-      } as any);
+      const result = await todoService.update(created.id, dto);
 
       expect(result.text).toBe('Updated text');
       expect(result.isDone).toBe(true);
 
       const inDb = await prisma.todo.findUnique({ where: { id: created.id } });
-      expect(inDb!.text).toBe('Updated text');
-      expect(inDb!.isDone).toBe(true);
+      if (!inDb) throw new Error('Expected todo to exist in DB');
+      expect(inDb.text).toBe('Updated text');
+      expect(inDb.isDone).toBe(true);
     });
 
     it('should not change fields that were not provided in the update', async () => {
       const created = await todoService.create(
         seedTodo({ text: 'Original', ownerId: 'owner-abc' }),
       );
+      const dto: UpdateTodoDto = { isDone: true };
 
-      await todoService.update(created.id, { isDone: true } as any);
+      await todoService.update(created.id, dto);
 
       const inDb = await prisma.todo.findUnique({ where: { id: created.id } });
-      expect(inDb!.text).toBe('Original');
-      expect(inDb!.ownerId).toBe('owner-abc');
+      if (!inDb) throw new Error('Expected todo to exist in DB');
+      expect(inDb.text).toBe('Original');
+      expect(inDb.ownerId).toBe('owner-abc');
     });
 
     it('should throw NotFoundException when updating a non-existent todo', async () => {
-      await expect(
-        todoService.update(999999, { text: 'x' } as any),
-      ).rejects.toThrow(NotFoundException);
+      const dto: UpdateTodoDto = { text: 'x' };
+      await expect(todoService.update(999999, dto)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -197,7 +188,8 @@ describe('TodoService (e2e)', () => {
       expect(result.deleted).toBe(true);
 
       const inDb = await prisma.todo.findUnique({ where: { id: created.id } });
-      expect(inDb!.deleted).toBe(true);
+      if (!inDb) throw new Error('Expected todo to exist in DB');
+      expect(inDb.deleted).toBe(true);
     });
 
     it('should not physically remove the record from the database', async () => {
@@ -209,9 +201,7 @@ describe('TodoService (e2e)', () => {
     });
 
     it('should throw NotFoundException when removing a non-existent todo', async () => {
-      await expect(todoService.remove(999999)).rejects.toThrow(
-        NotFoundException,
-      );
+      await expect(todoService.remove(999999)).rejects.toThrow(NotFoundException);
     });
   });
 
@@ -249,9 +239,7 @@ describe('TodoService (e2e)', () => {
       const tomorrow = new Date();
       tomorrow.setDate(tomorrow.getDate() + 1);
 
-      await todoService.create(
-        seedTodo({ deadline: todayNoon.toISOString(), text: 'Due today' }),
-      );
+      await todoService.create(seedTodo({ deadline: todayNoon.toISOString(), text: 'Due today' }));
       await todoService.create(
         seedTodo({ deadline: tomorrow.toISOString(), text: 'Due tomorrow' }),
       );
@@ -266,10 +254,9 @@ describe('TodoService (e2e)', () => {
       const todayNoon = new Date();
       todayNoon.setHours(12, 0, 0, 0);
 
-      const todo = await todoService.create(
-        seedTodo({ deadline: todayNoon.toISOString() }),
-      );
-      await todoService.update(todo.id, { isDone: true } as any);
+      const todo = await todoService.create(seedTodo({ deadline: todayNoon.toISOString() }));
+      const dto: UpdateTodoDto = { isDone: true };
+      await todoService.update(todo.id, dto);
 
       const result = await todoService.findDueToday();
 
