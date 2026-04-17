@@ -1,4 +1,4 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
 import { BotService } from './bot.service';
 import { LlmService } from '../llm/llm.service';
 import { ToDoAction } from '../todo/dto/create-todo.dto';
@@ -13,10 +13,7 @@ describe('BotService', () => {
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
-      providers: [
-        BotService,
-        { provide: LlmService, useValue: mockLlmService },
-      ],
+      providers: [BotService, { provide: LlmService, useValue: mockLlmService }],
     }).compile();
 
     service = module.get<BotService>(BotService);
@@ -44,7 +41,7 @@ describe('BotService', () => {
 
       expect(mockLlmService.getTodoData).toHaveBeenCalledTimes(1);
       expect(mockLlmService.getTodoData).toHaveBeenCalledWith('Buy milk');
-      expect(result).toEqual(mockResult);
+      expect(result).toStrictEqual(mockResult);
     });
   });
 

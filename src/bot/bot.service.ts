@@ -6,13 +6,13 @@ import { ToDoAction } from '../todo/dto/create-todo.dto';
 export class BotService {
   constructor(readonly llmService: LlmService) {}
 
-  async getTextFromVoice(file: ArrayBuffer): Promise<string> {
+  getTextFromVoice(_file: ArrayBuffer): string {
     // todo: add AI interaction
     return 'lol';
   }
 
-  async handleText(text: string) {
-    return await this.processText(text);
+  async handleText(text: string): Promise<string> {
+    return this.processText(text);
   }
 
   async processText(text: string): Promise<string> {
@@ -29,7 +29,7 @@ export class BotService {
     }
   }
 
-  async classifyText(text: string) {
-    return await this.llmService.getTodoData(text);
+  async classifyText(text: string): Promise<ReturnType<LlmService['getTodoData']>> {
+    return this.llmService.getTodoData(text);
   }
 }

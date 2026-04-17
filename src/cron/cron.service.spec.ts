@@ -1,7 +1,11 @@
-import { Test, TestingModule } from '@nestjs/testing';
+import { Test, type TestingModule } from '@nestjs/testing';
+import { type Logger } from '@nestjs/common';
 import { CronService } from './cron.service';
 import { TodoService } from '../todo/todo.service';
+import type { Todo } from '../todo/entities/todo.entity';
 import { getBotToken } from 'nestjs-telegraf';
+
+type CronServiceWithLogger = CronService & { logger: Logger };
 
 const makeTodo = (
   overrides: Partial<{
@@ -15,7 +19,7 @@ const makeTodo = (
     createdAt: Date;
     updatedAt: Date;
   }> = {},
-) => ({
+): Todo => ({
   id: 1,
   text: 'Test todo',
   deadline: new Date().toISOString(),
@@ -64,8 +68,8 @@ describe('CronService', () => {
     it('should log startup message on every run', async () => {
       mockTodoService.findDueToday.mockResolvedValue([]);
       const logSpy = jest
-        .spyOn((service as any).logger, 'log')
-        .mockImplementation(() => {});
+        .spyOn((service as unknown as CronServiceWithLogger).logger, 'log')
+        .mockImplementation(() => undefined);
 
       await service.handleDailyNotifications();
 
@@ -75,15 +79,13 @@ describe('CronService', () => {
     it('should log and return early when no todos are due today', async () => {
       mockTodoService.findDueToday.mockResolvedValue([]);
       const logSpy = jest
-        .spyOn((service as any).logger, 'log')
-        .mockImplementation(() => {});
+        .spyOn((service as unknown as CronServiceWithLogger).logger, 'log')
+        .mockImplementation(() => undefined);
 
       await service.handleDailyNotifications();
 
       expect(mockSendMessage).not.toHaveBeenCalled();
-      expect(logSpy).toHaveBeenCalledWith(
-        'No todos due today — skipping notifications',
-      );
+      expect(logSpy).toHaveBeenCalledWith('No todos due today — skipping notifications');
     });
 
     it('should send one message per user with their due todos', async () => {
@@ -129,48 +131,38 @@ describe('CronService', () => {
         makeTodo({ id: 1, text: 'Task for failing user', ownerId: 'user-bad' }),
         makeTodo({ id: 2, text: 'Task for good user', ownerId: 'user-good' }),
       ]);
-      mockSendMessage
-        .mockRejectedValueOnce(new Error('Telegram error'))
-        .mockResolvedValueOnce({});
+      mockSendMessage.mockRejectedValueOnce(new Error('Telegram error')).mockResolvedValueOnce({});
 
       const errorSpy = jest
-        .spyOn((service as any).logger, 'error')
-        .mockImplementation(() => {});
+        .spyOn((service as unknown as CronServiceWithLogger).logger, 'error')
+        .mockImplementation(() => undefined);
 
       await service.handleDailyNotifications();
 
       expect(mockSendMessage).toHaveBeenCalledTimes(2);
-      expect(errorSpy).toHaveBeenCalledWith(
-        expect.stringContaining('user-bad'),
-        expect.any(Error),
-      );
+      expect(errorSpy).toHaveBeenCalledWith(expect.stringContaining('user-bad'), expect.any(Error));
     });
 
     it('should log an error and return when DB fetch fails', async () => {
       mockTodoService.findDueToday.mockRejectedValue(new Error('DB down'));
       const errorSpy = jest
-        .spyOn((service as any).logger, 'error')
-        .mockImplementation(() => {});
+        .spyOn((service as unknown as CronServiceWithLogger).logger, 'error')
+        .mockImplementation(() => undefined);
 
       await service.handleDailyNotifications();
 
       expect(mockSendMessage).not.toHaveBeenCalled();
-      expect(errorSpy).toHaveBeenCalledWith(
-        'Failed to fetch due todos from DB',
-        expect.any(Error),
-      );
+      expect(errorSpy).toHaveBeenCalledWith('Failed to fetch due todos from DB', expect.any(Error));
     });
   });
 
-  describe('formatMessage (private)', () => {
+  describe('formatMessage', () => {
     it('should include the task text and deadline time in the message', () => {
       const deadline = new Date();
       deadline.setHours(14, 30, 0, 0);
 
-      const todos = [
-        makeTodo({ text: 'Buy groceries', deadline: deadline.toISOString() }),
-      ];
-      const message = (service as any).formatMessage(todos);
+      const todos: Todo[] = [makeTodo({ text: 'Buy groceries', deadline: deadline.toISOString() })];
+      const message = service.formatMessage(todos);
 
       expect(message).toContain('Buy groceries');
       expect(message).toContain('14:30');
@@ -178,11 +170,11 @@ describe('CronService', () => {
     });
 
     it('should number multiple tasks', () => {
-      const todos = [
+      const todos: Todo[] = [
         makeTodo({ id: 1, text: 'First task' }),
         makeTodo({ id: 2, text: 'Second task' }),
       ];
-      const message = (service as any).formatMessage(todos);
+      const message = service.formatMessage(todos);
 
       expect(message).toContain('1.');
       expect(message).toContain('2.');

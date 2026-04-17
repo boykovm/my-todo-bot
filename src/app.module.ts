@@ -19,7 +19,7 @@ import { CronModule } from './cron/cron.module';
       imports: [ConfigModule],
       botName: 'm1x2d0s',
       useFactory: (configService: ConfigService) => ({
-        token: configService.get<string>('BOT_TOKEN') as string,
+        token: configService.get<string>('BOT_TOKEN') ?? '',
         include: [BotModule],
       }),
       inject: [ConfigService],

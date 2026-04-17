@@ -1,76 +1,68 @@
 import { Ctx, Help, On, Start, Update } from 'nestjs-telegraf';
 import { Context } from 'telegraf';
 import { BotService } from './bot.service';
-import * as TelegramTypes from 'typescript-telegram-bot-api/dist/types';
+import type * as TelegramTypes from 'typescript-telegram-bot-api/dist/types';
 import { LlmService } from '../llm/llm.service';
+import { Logger } from '@nestjs/common';
 import ffmpeg from 'fluent-ffmpeg';
 import { writeFile, unlink } from 'fs/promises';
 
 @Update()
 export class Bot {
+  private readonly logger = new Logger(Bot.name);
+
   constructor(
     private readonly botService: BotService,
     private readonly llmService: LlmService,
   ) {}
 
   @Start()
-  async start(@Ctx() ctx: Context) {
+  async start(@Ctx() ctx: Context): Promise<void> {
     await ctx.reply('Welcome');
   }
 
   @Help()
-  async help(@Ctx() ctx: Context) {
+  async help(@Ctx() ctx: Context): Promise<void> {
     await ctx.reply('Should be help');
   }
 
   @On('voice')
-  async voiceHandler(@Ctx() ctx: Context) {
-    // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-    // @ts-expect-error
+  async voiceHandler(@Ctx() ctx: Context): Promise<void> {
+    // @ts-expect-error: telegraf context typing does not expose voice on generic Context
     const voice = ctx.message.voice as TelegramTypes.Voice;
-    const { mp3FilePath, oggFilePath } = await this.convertVoiceIntoMp3(
-      ctx,
-      voice,
-    );
+    const { mp3FilePath, oggFilePath } = await this.convertVoiceIntoMp3(ctx, voice);
 
     try {
       const text = await this.llmService.getTextFromFile(mp3FilePath);
-
       const response = await this.botService.handleText(text);
-
-      await ctx.reply(`I got your voice from file: ${text}`);
+      await ctx.reply(response);
       return;
     } catch (error) {
-      console.log(error);
+      this.logger.error('Failed to process voice message', error);
     } finally {
       await this.cleanUpFiles(oggFilePath, mp3FilePath);
     }
 
-    await ctx.reply(
-      'Looks like text was not recognized, try again or use text instead of voice',
-    );
+    await ctx.reply('Looks like text was not recognized, try again or use text instead of voice');
   }
 
   @On('message')
-  async messageHandler(@Ctx() ctx: Context) {
-    const { from: { id } = { id: null as number | null } } =
-      ctx.message as TelegramTypes.Message;
+  async messageHandler(@Ctx() ctx: Context): Promise<void> {
+    const { from: { id } = { id: null as number | null } } = ctx.message as TelegramTypes.Message;
 
     if (ctx.text) {
       const response = await this.botService.handleText(ctx.text);
-
-      await ctx.reply(`I got your text from userId: ${id}`);
+      await ctx.reply(`[${String(id)}] ${response}`);
       return;
     }
 
     await ctx.reply('there was an issue');
-    return;
   }
 
   private async convertVoiceIntoMp3(
     @Ctx() ctx: Context,
     voice: TelegramTypes.Voice,
-  ) {
+  ): Promise<{ oggFilePath: string; mp3FilePath: string }> {
     const { file_id, file_unique_id } = voice;
 
     const oggFilePath = `temp_${file_unique_id}_${Date.now()}.ogg`;
@@ -79,7 +71,7 @@ export class Bot {
     const file = await ctx.telegram.getFile(file_id);
 
     const response = await fetch(
-      `https://api.telegram.org/file/bot${ctx.telegram.token}/${file.file_path}`,
+      `https://api.telegram.org/file/bot${ctx.telegram.token}/${file.file_path ?? ''}`,
     );
 
     const arrayBuffer = await response.arrayBuffer();
@@ -88,33 +80,31 @@ export class Bot {
 
     await this.ffmpegPromise(oggFilePath, mp3FilePath);
 
-    return {
-      oggFilePath,
-      mp3FilePath,
-    };
+    return { oggFilePath, mp3FilePath };
   }
 
-  private async ffmpegPromise(inputPath: string, outputPath: string) {
-    return new Promise((resolve, reject) => {
+  private ffmpegPromise(inputPath: string, outputPath: string): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
       ffmpeg(inputPath)
         .toFormat('mp3')
-        .on('end', resolve)
+        .on('end', () => {
+          resolve();
+        })
         .on('error', reject)
         .save(outputPath);
     });
   }
 
-  private async cleanUpFiles(...files: string[]) {
+  private async cleanUpFiles(...files: string[]): Promise<void> {
     const promises = files.map((file) => unlink(file));
 
     await Promise.allSettled(promises).then((results) => {
       results
         .filter((result) => result.status === 'rejected')
         .forEach((result) => {
-          console.error(
+          this.logger.error(
             'Failed to delete file:',
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
-            result?.reason?.path || result.reason,
+            result.reason instanceof Error ? result.reason.message : String(result.reason),
           );
         });
     });
