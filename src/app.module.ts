@@ -5,10 +5,13 @@ import { BotModule } from './bot/bot.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { TelegrafModule } from 'nestjs-telegraf';
 import { PrismaModule } from './prisma/prisma.module';
+import { ScheduleModule } from '@nestjs/schedule';
+import { CronModule } from './cron/cron.module';
 
 @Module({
   imports: [
     PrismaModule,
+    ScheduleModule.forRoot(),
     ConfigModule.forRoot({
       isGlobal: true,
     }),
@@ -22,6 +25,7 @@ import { PrismaModule } from './prisma/prisma.module';
       inject: [ConfigService],
     }),
     BotModule,
+    CronModule,
   ],
   controllers: [AppController],
   providers: [AppService],
