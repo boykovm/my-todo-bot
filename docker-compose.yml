@@ -5,12 +5,13 @@ services:
       dockerfile: Dockerfile
     container_name: my-todo-bot
     ports:
-      - '3000:3000'
+      - '4000:3000'
     environment:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@db:5432/${POSTGRES_DB:-tododb}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
-      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN}
+      BOT_TOKEN: ${BOT_TOKEN}
+      ADMIN_ID: ${ADMIN_ID}
     depends_on:
       db:
         condition: service_healthy
