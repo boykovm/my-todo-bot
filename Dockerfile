@@ -19,6 +19,8 @@ FROM node:24.11-alpine AS production
 
 WORKDIR /app
 
+RUN apk add --no-cache ffmpeg
+
 COPY package*.json ./
 
 RUN npm ci --only=production
