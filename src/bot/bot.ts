@@ -33,8 +33,9 @@ export class Bot {
     const { mp3FilePath, oggFilePath } = await this.convertVoiceIntoMp3(ctx, voice);
 
     try {
+      const ownerId = String(ctx.from?.id ?? '');
       const text = await this.llmService.getTextFromFile(mp3FilePath);
-      const response = await this.botService.handleText(text);
+      const response = await this.botService.handleText(text, ownerId);
       await ctx.reply(response);
       return;
     } catch (error) {
@@ -49,10 +50,11 @@ export class Bot {
   @On('message')
   async messageHandler(@Ctx() ctx: Context): Promise<void> {
     const { from: { id } = { id: null as number | null } } = ctx.message as TelegramTypes.Message;
+    const ownerId = String(id ?? '');
 
     if (ctx.text) {
-      const response = await this.botService.handleText(ctx.text);
-      await ctx.reply(`[${String(id)}] ${response}`);
+      const response = await this.botService.handleText(ctx.text, ownerId);
+      await ctx.reply(response);
       return;
     }
 
